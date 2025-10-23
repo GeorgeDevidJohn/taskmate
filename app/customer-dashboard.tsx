@@ -40,8 +40,7 @@ export default function CustomerDashboard() {
   };
 
   const handlePostTask = () => {
-    // TODO: Navigate to post task screen
-    console.log('Post new task');
+    router.push('/post-task');
   };
 
   const handleMenuPress = () => {
