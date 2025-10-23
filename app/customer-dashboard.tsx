@@ -22,10 +22,10 @@ export default function CustomerDashboard() {
   ];
 
   const nearbyHelpers = [
-    { id: 1, name: 'John Smith', address: '123 Main St, Downtown', location: '0.5 km away', reviews: 24, profilePic: '👨‍💼' },
-    { id: 2, name: 'Sarah Johnson', address: '456 Oak Ave, Midtown', location: '1.2 km away', reviews: 18, profilePic: '👩‍💻' },
-    { id: 3, name: 'Mike Wilson', address: '789 Pine Rd, Uptown', location: '2.1 km away', reviews: 32, profilePic: '👨‍🔧' },
-    { id: 4, name: 'Emily Davis', address: '321 Elm St, Westside', location: '3.5 km away', reviews: 15, profilePic: '👩‍🎨' },
+    { id: 1, name: 'John Smith', address: '123 Main St, Downtown', location: '0.5 km away', reviews: 24, rating: 4.8, profilePic: '👨‍💼' },
+    { id: 2, name: 'Sarah Johnson', address: '456 Oak Ave, Midtown', location: '1.2 km away', reviews: 18, rating: 4.6, profilePic: '👩‍💻' },
+    { id: 3, name: 'Mike Wilson', address: '789 Pine Rd, Uptown', location: '2.1 km away', reviews: 32, rating: 4.9, profilePic: '👨‍🔧' },
+    { id: 4, name: 'Emily Davis', address: '321 Elm St, Westside', location: '3.5 km away', reviews: 15, rating: 4.7, profilePic: '👩‍🎨' },
   ];
 
   useEffect(() => {
@@ -59,8 +59,11 @@ export default function CustomerDashboard() {
   };
 
   const handleSeeMoreTasks = () => {
-    // TODO: Navigate to all tasks
-    console.log('See more tasks');
+    router.push('/all-tasks');
+  };
+
+  const handleTaskPress = (taskId: number) => {
+    router.push('/task-details');
   };
 
   return (
@@ -159,7 +162,7 @@ export default function CustomerDashboard() {
                 <View style={styles.taskHeader}>
                   <ThemedText style={styles.taskTitleWhite}>{task.title}</ThemedText>
                   <View style={styles.taskRightSection}>
-                    <Pressable style={styles.arrowButton}>
+                    <Pressable style={styles.arrowButton} onPress={() => handleTaskPress(task.id)}>
                       <ChevronRight size={20} color="#ffffff" />
                     </Pressable>
                   </View>
@@ -192,6 +195,11 @@ export default function CustomerDashboard() {
                 </View>
                 <View style={styles.helperInfo}>
                   <ThemedText style={styles.helperName}>{helper.name}</ThemedText>
+                  <View style={styles.helperStats}>
+                    <Star size={16} color="#ff8c1a" />
+                    <ThemedText style={styles.rating}>{helper.rating}</ThemedText>
+                    <ThemedText style={styles.reviews}>({helper.reviews} reviews)</ThemedText>
+                  </View>
                   <View style={styles.helperDetails}>
                     <View style={styles.helperAddress}>
                       <MapPin size={14} color="#666666" />
@@ -533,6 +541,21 @@ const styles = StyleSheet.create({
   },
   helperDetails: {
     gap: 2,
+  },
+  helperStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rating: {
+    fontSize: 16,
+    color: '#ff8c1a',
+    marginLeft: 4,
+    marginRight: 8,
+  },
+  reviews: {
+    fontSize: 14,
+    color: '#666666',
   },
   helperAddress: {
     flexDirection: 'row',
