@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, Pressable, Image } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Clock, Star, Plus, Bell, Menu, MessageCircle } from 'lucide-react-native';
+import { MapPin, Clock, Star, Plus, Bell, Menu, MessageCircle, User, Send, ChevronRight } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
@@ -16,16 +16,16 @@ export default function CustomerDashboard() {
   ];
 
   const recentTasks = [
-    { id: 1, title: 'Need help moving furniture', status: 'pending' },
-    { id: 2, title: 'Grocery shopping assistance', status: 'completed' },
-    { id: 3, title: 'Pet sitting for weekend', status: 'pending' },
+    { id: 1, title: 'Need help moving furniture', status: 'pending', assigned: true, completed: false },
+    { id: 2, title: 'Grocery shopping assistance', status: 'completed', assigned: true, completed: true },
+    { id: 3, title: 'Pet sitting for weekend', status: 'pending', assigned: false, completed: false },
   ];
 
   const nearbyHelpers = [
-    { id: 1, name: 'John Smith', rating: 4.8, location: '0.5 km away', reviews: 24 },
-    { id: 2, name: 'Sarah Johnson', rating: 4.9, location: '1.2 km away', reviews: 18 },
-    { id: 3, name: 'Mike Wilson', rating: 4.7, location: '2.1 km away', reviews: 32 },
-    { id: 4, name: 'Emily Davis', rating: 4.6, location: '3.5 km away', reviews: 15 },
+    { id: 1, name: 'John Smith', address: '123 Main St, Downtown', location: '0.5 km away', reviews: 24, profilePic: '👨‍💼' },
+    { id: 2, name: 'Sarah Johnson', address: '456 Oak Ave, Midtown', location: '1.2 km away', reviews: 18, profilePic: '👩‍💻' },
+    { id: 3, name: 'Mike Wilson', address: '789 Pine Rd, Uptown', location: '2.1 km away', reviews: 32, profilePic: '👨‍🔧' },
+    { id: 4, name: 'Emily Davis', address: '321 Elm St, Westside', location: '3.5 km away', reviews: 15, profilePic: '👩‍🎨' },
   ];
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function CustomerDashboard() {
   return (
     <ThemedView style={styles.container}>
       <LinearGradient
-        colors={['#ff6333', '#ff8c5a']}
+        colors={['#ff8c1a','#ff6333']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -86,6 +86,9 @@ export default function CustomerDashboard() {
         <View style={styles.headerContent}>
           <View style={styles.userInfo}>
             <ThemedText style={styles.userName}>Hi! Alex Johnson</ThemedText>
+          </View>
+          <View style={styles.profileIcon}>
+            <User size={20} color="#ffffff" />
           </View>
         </View>
       </LinearGradient>
@@ -120,7 +123,7 @@ export default function CustomerDashboard() {
         <View style={styles.section}>
           <Pressable style={styles.actionButton} onPress={handlePostTask}>
             <LinearGradient
-              colors={['#ff6333', '#ff8c5a']}
+              colors={['#ff8c1a','#ff6333']}
               style={styles.actionButtonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -141,21 +144,38 @@ export default function CustomerDashboard() {
           </View>
           {recentTasks.slice(0, 3).map((task) => (
             <View key={task.id} style={styles.taskCard}>
-              <View style={styles.taskHeader}>
-                <ThemedText style={styles.taskTitle}>{task.title}</ThemedText>
-                <View style={[
-                  styles.statusIndicator,
-                  { backgroundColor: task.status === 'completed' ? '#4CAF50' : '#f44336' }
-                ]} />
-              </View>
-              <View style={styles.taskDetails}>
-                <View style={styles.taskDetailItem}>
-                  <Clock size={16} color="#666666" />
-                  <ThemedText style={styles.taskDetailText}>Posted 2 hours ago</ThemedText>
+              <View style={styles.taskCardBackground}>
+                <Image
+                  source={require('@/assets/images/bg2.png')}
+                  style={styles.taskBackgroundImage}
+                  
+                />
+                <View style={styles.taskOverlay}>
+                  <LinearGradient
+                    colors={['#ff8c1a', '#ff6333']}
+                    style={styles.taskCardGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                <View style={styles.taskHeader}>
+                  <ThemedText style={styles.taskTitleWhite}>{task.title}</ThemedText>
+                  <View style={styles.taskRightSection}>
+                    <Pressable style={styles.arrowButton}>
+                      <ChevronRight size={20} color="#ffffff" />
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.taskDetailItem}>
-                  <MapPin size={16} color="#666666" />
-                  <ThemedText style={styles.taskDetailText}>Downtown</ThemedText>
+                <View style={styles.taskDetails}>
+                  <View style={styles.taskDetailItem}>
+                    <Clock size={18} color="#ffffff" />
+                    <ThemedText style={styles.taskDetailTextWhite}>Posted 2 hours ago</ThemedText>
+                  </View>
+                  <View style={styles.taskDetailItem}>
+                    <MapPin size={18} color="#ffffff" />
+                    <ThemedText style={styles.taskDetailTextWhite}>Downtown</ThemedText>
+                  </View>
+                </View>
+                  </LinearGradient>
                 </View>
               </View>
             </View>
@@ -164,24 +184,28 @@ export default function CustomerDashboard() {
 
         {/* Available Helpers */}
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Available Helpers (Under 50km)</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Available Nearby Helpers</ThemedText>
           {nearbyHelpers.map((helper) => (
             <View key={helper.id} style={styles.helperCard}>
-              <View style={styles.helperInfo}>
-                <ThemedText style={styles.helperName}>{helper.name}</ThemedText>
-                <View style={styles.helperDetails}>
-                  <View style={styles.helperRating}>
-                    <Star size={16} color="#ffd700" />
-                    <ThemedText style={styles.ratingText}>{helper.rating} ({helper.reviews} reviews)</ThemedText>
-                  </View>
-                  <View style={styles.helperLocation}>
-                    <MapPin size={16} color="#666666" />
-                    <ThemedText style={styles.locationText}>{helper.location}</ThemedText>
+              <View style={styles.helperProfileContainer}>
+                <View style={styles.helperProfilePic}>
+                  <ThemedText style={styles.profilePicText}>{helper.profilePic}</ThemedText>
+                </View>
+                <View style={styles.helperInfo}>
+                  <ThemedText style={styles.helperName}>{helper.name}</ThemedText>
+                  <View style={styles.helperDetails}>
+                    <View style={styles.helperAddress}>
+                      <MapPin size={14} color="#666666" />
+                      <ThemedText style={styles.addressText}>{helper.address}</ThemedText>
+                    </View>
+                    <View style={styles.helperLocation}>
+                      <ThemedText style={styles.locationText}>{helper.location}</ThemedText>
+                    </View>
                   </View>
                 </View>
               </View>
               <Pressable style={styles.contactButton}>
-                <ThemedText style={styles.contactButtonText}>Contact</ThemedText>
+                <Send size={16} color="#ffffff" />
               </Pressable>
             </View>
           ))}
@@ -245,6 +269,14 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
+  },
+  profileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   welcomeText: {
     fontSize: 16,
@@ -363,15 +395,37 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   taskCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  taskCardBackground: {
+    position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  taskBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    resizeMode: "cover",
+    right: 0,
+    bottom: 0,
+    
+  },
+  taskOverlay: {
+    position: 'relative',
+    zIndex: 1,
+  },
+  taskCardGradient: {
+    padding: 20,
+    borderRadius: 16,
+    opacity: 0.8,
   },
   taskHeader: {
     flexDirection: 'row',
@@ -385,10 +439,23 @@ const styles = StyleSheet.create({
     color: '#000000',
     flex: 1,
   },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  taskTitleWhite: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    flex: 1,
+  },
+  taskRightSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   taskDetails: {
     marginBottom: 12,
@@ -403,19 +470,58 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 8,
   },
+  taskDetailTextWhite: {
+    fontSize: 16,
+    color: '#ffffff',
+    marginLeft: 8,
+    opacity: 0.9,
+  },
   helperCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    position: 'relative',
+  },
+  contactButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#ff6333',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  helperProfileContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helperProfilePic: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  profilePicText: {
+    fontSize: 24,
   },
   helperInfo: {
     flex: 1,
@@ -424,34 +530,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   helperDetails: {
-    gap: 4,
+    gap: 2,
   },
-  helperRating: {
+  helperAddress: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  ratingText: {
+  addressText: {
     fontSize: 14,
     color: '#666666',
     marginLeft: 4,
+    flex: 1,
   },
   helperLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  contactButton: {
-    backgroundColor: '#ff6333',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  contactButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   floatingMessageButton: {
     position: 'absolute',
