@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, Alert, Image } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, Alert, Modal, TouchableOpacity } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, ArrowLeft, Edit, Trash2, MapPin, Clock, User, Star, Send } from 'lucide-react-native';
+import { Bell, ArrowLeft, Edit, Trash2, MapPin, User, Star, Send } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function TaskDetailsScreen() {
   // Mock task data - in real app this would come from navigation params or API
-  const [task] = useState({
+  const [task, setTask] = useState({
     id: 1,
     title: 'Need help moving furniture',
     description: 'I need assistance moving heavy furniture from my living room to the bedroom. The furniture includes a large sofa, coffee table, and two armchairs. Please bring moving equipment if available.',
@@ -29,6 +30,17 @@ export default function TaskDetailsScreen() {
       phone: '+1 (555) 123-4567'
     }
   });
+
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedHelper, setSelectedHelper] = useState<any>(null);
+  
+  // Mock contacted helpers list - in real app this would come from API
+  const [contactedHelpers] = useState([
+    { id: 1, name: 'Sarah Johnson', profilePic: '👩‍💻', rating: 4.6, reviews: 18 },
+    { id: 2, name: 'Mike Wilson', profilePic: '👨‍🔧', rating: 4.9, reviews: 32 },
+    { id: 3, name: 'Emily Davis', profilePic: '👩‍🎨', rating: 4.7, reviews: 15 },
+    { id: 4, name: 'Alex Johnson', profilePic: '👨‍🎓', rating: 4.5, reviews: 22 },
+  ]);
 
   const handleBack = () => {
     router.back();
@@ -70,6 +82,48 @@ export default function TaskDetailsScreen() {
       case 'pending': return 'Pending';
       default: return 'Unknown';
     }
+  };
+
+  const handleAssignTask = () => {
+    setSelectedHelper(null);
+    setShowAssignmentModal(true);
+  };
+
+  const handleReassignTask = () => {
+    setSelectedHelper(null);
+    setShowAssignmentModal(true);
+  };
+
+  const handleHelperSelect = (helper: any) => {
+    setSelectedHelper(helper);
+  };
+
+  const handleAssignSelectedHelper = () => {
+    if (!selectedHelper) return;
+    
+    // Close modal immediately when assign button is clicked
+    setShowAssignmentModal(false);
+    setSelectedHelper(null);
+    
+    Alert.alert(
+      'Confirm Assignment',
+      `Are you sure you want to assign this task to ${selectedHelper.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Confirm', 
+          onPress: () => {
+            setTask(prevTask => ({
+              ...prevTask,
+              assigned: true,
+              status: 'assigned',
+              assignee: selectedHelper
+            }));
+            Alert.alert('Success', `Task has been assigned to ${selectedHelper.name}!`);
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -116,8 +170,39 @@ export default function TaskDetailsScreen() {
             <View style={[styles.statusIndicator, { backgroundColor: getStatusColor(task.status) }]}>
               <ThemedText style={styles.statusText}>{getStatusText(task.status)}</ThemedText>
             </View>
+            {task.assigned && (
+              <Pressable style={styles.smallReassignButton} onPress={handleReassignTask}>
+                <LinearGradient
+                  colors={['#ff8c1a', '#ff6333']}
+                  style={styles.smallReassignButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <ThemedText style={styles.smallReassignButtonText}>Re-assign</ThemedText>
+                </LinearGradient>
+              </Pressable>
+            )}
           </View>
         </View>
+
+        {/* Assignment Actions */}
+        {!task.assigned && (
+          <View style={styles.section}>
+            <View style={styles.assignmentButtonsContainer}>
+              <Pressable style={styles.assignButton} onPress={handleAssignTask}>
+                <LinearGradient
+                  colors={['#ff8c1a', '#ff6333']}
+                  style={styles.assignButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <User size={20} color="#ffffff" />
+                  <ThemedText style={styles.assignButtonText}>Assign Helper</ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Description */}
         <View style={styles.section}>
@@ -183,6 +268,86 @@ export default function TaskDetailsScreen() {
         {/* Task Meta */}
        
       </ScrollView>
+
+      {/* Assignment Modal */}
+      <Modal
+        visible={showAssignmentModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAssignmentModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowAssignmentModal(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>
+                {task.assigned ? 'Re-assign Helper' : 'Assign Helper'}
+              </ThemedText>
+              <Pressable onPress={() => setShowAssignmentModal(false)}>
+                <ThemedText style={styles.closeButton}>×</ThemedText>
+              </Pressable>
+            </View>
+            <ScrollView style={styles.helpersList}>
+              {contactedHelpers.map((helper) => (
+                <Pressable
+                  key={helper.id}
+                  style={[
+                    styles.helperItem,
+                    selectedHelper && selectedHelper.id === helper.id && styles.helperItemSelected
+                  ]}
+                  onPress={() => handleHelperSelect(helper)}
+                >
+                  <View style={styles.helperProfilePic}>
+                    <ThemedText style={styles.helperProfilePicText}>{helper.profilePic}</ThemedText>
+                  </View>
+                  <View style={styles.helperInfo}>
+                    <ThemedText style={styles.helperName}>{helper.name}</ThemedText>
+                    <View style={styles.helperStats}>
+                      <Star size={16} color="#ff8c1a" />
+                      <ThemedText style={styles.helperRating}>{helper.rating}</ThemedText>
+                      <ThemedText style={styles.helperReviews}>({helper.reviews} reviews)</ThemedText>
+                    </View>
+                  </View>
+                  {selectedHelper && selectedHelper.id === helper.id && (
+                    <View style={styles.selectedIndicator}>
+                      <ThemedText style={styles.selectedCheckmark}>✓</ThemedText>
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <Pressable 
+                style={[
+                  styles.assignButtonModal,
+                  !selectedHelper && styles.assignButtonModalDisabled
+                ]}
+                onPress={handleAssignSelectedHelper}
+                disabled={!selectedHelper}
+              >
+                <LinearGradient
+                  colors={selectedHelper ? ['#ff8c1a', '#ff6333'] : ['#cccccc', '#999999']}
+                  style={styles.assignButtonModalGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <User size={20} color="#ffffff" />
+                  <ThemedText style={styles.assignButtonModalText}>
+                    {task.assigned ? 'Re-assign Helper' : 'Assign Helper'}
+                  </ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ThemedView>
   );
 }
@@ -281,7 +446,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statusContainer: {
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   statusIndicator: {
     paddingHorizontal: 16,
@@ -444,6 +611,201 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 14,
     color: '#666666',
+    marginLeft: 8,
+  },
+  assignmentButtonsContainer: {
+    alignItems: 'center',
+  },
+  smallReassignButton: {
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  smallReassignButtonGradient: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  smallReassignButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  assignButton: {
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  assignButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+  },
+  assignButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  reassignButton: {
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  reassignButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+  },
+  reassignButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  closeButton: {
+    fontSize: 24,
+    color: '#666666',
+    fontWeight: '600',
+  },
+  helpersList: {
+    maxHeight: 400,
+  },
+  helperItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  helperProfilePic: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  helperProfilePicText: {
+    fontSize: 24,
+  },
+  helperInfo: {
+    flex: 1,
+  },
+  helperName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 4,
+  },
+  helperStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  helperRating: {
+    fontSize: 16,
+    color: '#ff8c1a',
+    marginLeft: 4,
+    marginRight: 8,
+  },
+  helperReviews: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  helperItemSelected: {
+    backgroundColor: '#fff0e6',
+    borderColor: '#ff6333',
+    borderWidth: 2,
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+  },
+  selectedCheckmark: {
+    fontSize: 20,
+    color: '#ff6333',
+    fontWeight: '700',
+  },
+  modalFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  assignButtonModal: {
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  assignButtonModalDisabled: {
+    shadowOpacity: 0.05,
+    elevation: 2,
+  },
+  assignButtonModalGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+  },
+  assignButtonModalText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
     marginLeft: 8,
   },
 });
