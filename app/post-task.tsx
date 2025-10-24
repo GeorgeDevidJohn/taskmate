@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, TextInput, Alert, Modal, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, ScrollView, Pressable, TextInput, Alert, Modal, TouchableOpacity, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, ArrowLeft, Plus, X } from 'lucide-react-native';
@@ -25,6 +25,7 @@ export default function PostTaskScreen() {
   const [address, setAddress] = useState('');
   const [images, setImages] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   const handleBack = () => {
     router.back();
@@ -37,7 +38,23 @@ export default function PostTaskScreen() {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    setShowCategoryModal(false);
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowCategoryModal(false);
+    });
+  };
+
+  const handleCloseModal = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowCategoryModal(false);
+    });
   };
 
   const handleAddImage = () => {
@@ -85,7 +102,14 @@ export default function PostTaskScreen() {
         {/* Category Selection */}
         <View style={styles.section}>
           <ThemedText style={styles.label}>Task Category *</ThemedText>
-          <Pressable style={styles.dropdownButton} onPress={() => setShowCategoryModal(true)}>
+          <Pressable style={styles.dropdownButton} onPress={() => {
+            setShowCategoryModal(true);
+            Animated.timing(overlayOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }).start();
+          }}>
             <ThemedText style={[styles.dropdownText, !selectedCategory && styles.placeholderText]}>
               {selectedCategory || 'Select a category'}
             </ThemedText>
@@ -166,11 +190,16 @@ export default function PostTaskScreen() {
         animationType="slide"
         onRequestClose={() => setShowCategoryModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={handleCloseModal}
+        >
+          <Animated.View style={[styles.modalOverlayAnimated, { opacity: overlayOpacity }]} />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>Select Category</ThemedText>
-              <Pressable onPress={() => setShowCategoryModal(false)}>
+              <Pressable onPress={handleCloseModal}>
                 <X size={24} color="#666666" />
               </Pressable>
             </View>
@@ -189,7 +218,7 @@ export default function PostTaskScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </ThemedView>
   );
@@ -363,9 +392,16 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlayAnimated: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#ffffff',

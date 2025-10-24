@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, Alert, Modal, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, ScrollView, Pressable, Alert, Modal, TouchableOpacity, Animated, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, ArrowLeft, Edit, Trash2, MapPin, User, Star, Send } from 'lucide-react-native';
+import { Bell, ArrowLeft, Edit, Trash2, MapPin, User, Star, Send, Plus } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
@@ -33,6 +33,9 @@ export default function TaskDetailsScreen() {
 
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedHelper, setSelectedHelper] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTask, setEditedTask] = useState(task);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
   
   // Mock contacted helpers list - in real app this would come from API
   const [contactedHelpers] = useState([
@@ -52,16 +55,74 @@ export default function TaskDetailsScreen() {
   };
 
   const handleEdit = () => {
-    Alert.alert('Edit Task', 'Edit functionality coming soon!');
+    setIsEditing(true);
+    setEditedTask(task);
   };
+
+  const handleSaveEdit = () => {
+    setTask(editedTask);
+    setIsEditing(false);
+    Alert.alert('Success', 'Task updated successfully!');
+  };
+
+  const handleCancelEdit = () => {
+    setEditedTask(task);
+    setIsEditing(false);
+  };
+
+  const handleUpdateField = (field: string, value: string) => {
+    setEditedTask(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDeleteImage = (imageId: number) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to delete this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => {
+            setEditedTask(prev => ({
+              ...prev,
+              images: prev.images.filter(img => img.id !== imageId)
+            }));
+          }
+        }
+      ]
+    );
+  };
+
+  const handleAddImage = () => {
+    Alert.alert('Add Photo', 'Photo picker functionality coming soon!');
+  };
+
 
   const handleDelete = () => {
     Alert.alert(
       'Delete Task',
-      'Are you sure you want to delete this task?',
+      'Are you sure you want to delete this task? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => router.back() }
+        { 
+          text: 'Delete', 
+          style: 'destructive', 
+          onPress: () => {
+            // In a real app, this would call an API to delete the task
+            // For now, we'll just navigate back to the dashboard
+            Alert.alert(
+              'Task Deleted',
+              'The task has been successfully deleted.',
+              [
+                { 
+                  text: 'OK', 
+                  onPress: () => router.replace('/customer-dashboard') 
+                }
+              ]
+            );
+          }
+        }
       ]
     );
   };
@@ -87,43 +148,94 @@ export default function TaskDetailsScreen() {
   const handleAssignTask = () => {
     setSelectedHelper(null);
     setShowAssignmentModal(true);
+    Animated.timing(overlayOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleReassignTask = () => {
     setSelectedHelper(null);
     setShowAssignmentModal(true);
+    Animated.timing(overlayOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleHelperSelect = (helper: any) => {
     setSelectedHelper(helper);
   };
 
+  const handleCloseModal = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAssignmentModal(false);
+      setSelectedHelper(null);
+    });
+  };
+
   const handleAssignSelectedHelper = () => {
     if (!selectedHelper) return;
     
-    // Close modal immediately when assign button is clicked
-    setShowAssignmentModal(false);
-    setSelectedHelper(null);
+    // Animate overlay out and close modal
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowAssignmentModal(false);
+      setSelectedHelper(null);
+    });
     
-    Alert.alert(
-      'Confirm Assignment',
-      `Are you sure you want to assign this task to ${selectedHelper.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm', 
-          onPress: () => {
-            setTask(prevTask => ({
-              ...prevTask,
-              assigned: true,
-              status: 'assigned',
-              assignee: selectedHelper
-            }));
-            Alert.alert('Success', `Task has been assigned to ${selectedHelper.name}!`);
+    if (selectedHelper.id === 'none') {
+      // Handle unassigning the task
+      Alert.alert(
+        'Confirm Unassignment',
+        'Are you sure you want to unassign this task?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Unassign', 
+            onPress: () => {
+              setTask(prevTask => ({
+                ...prevTask,
+                assigned: false,
+                status: 'pending',
+                assignee: null as any
+              }));
+              Alert.alert('Success', 'Task has been unassigned!');
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } else {
+      // Handle assigning to a specific helper
+      Alert.alert(
+        'Confirm Assignment',
+        `Are you sure you want to assign this task to ${selectedHelper.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Confirm', 
+            onPress: () => {
+              setTask(prevTask => ({
+                ...prevTask,
+                assigned: true,
+                status: 'assigned',
+                assignee: selectedHelper
+              }));
+              Alert.alert('Success', `Task has been assigned to ${selectedHelper.name}!`);
+            }
+          }
+        ]
+      );
+    }
   };
 
   return (
@@ -154,12 +266,16 @@ export default function TaskDetailsScreen() {
           <View style={styles.titleHeader}>
             <ThemedText style={styles.taskTitle}>{task.title}</ThemedText>
             <View style={styles.actionButtons}>
-              <Pressable style={styles.editButton} onPress={handleEdit}>
-                <Edit size={20} color="#ff6333" />
-              </Pressable>
-              <Pressable style={styles.deleteButton} onPress={handleDelete}>
-                <Trash2 size={20} color="#ff0000" />
-              </Pressable>
+              {!isEditing && (
+                <>
+                  <Pressable style={styles.editButton} onPress={handleEdit}>
+                    <Edit size={20} color="#ff6333" />
+                  </Pressable>
+                  <Pressable style={styles.deleteButton} onPress={handleDelete}>
+                    <Trash2 size={20} color="#ff0000" />
+                  </Pressable>
+                </>
+              )}
             </View>
           </View>
         </View>
@@ -208,7 +324,20 @@ export default function TaskDetailsScreen() {
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Description</ThemedText>
           <View style={styles.descriptionCard}>
-            <ThemedText style={styles.descriptionText}>{task.description}</ThemedText>
+            {isEditing ? (
+              <TextInput
+                style={styles.editDescriptionInput}
+                value={editedTask.description}
+                onChangeText={(text) => handleUpdateField('description', text)}
+                placeholder="Enter task description"
+                placeholderTextColor="#999999"
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+            ) : (
+              <ThemedText style={styles.descriptionText}>{task.description}</ThemedText>
+            )}
           </View>
         </View>
 
@@ -217,7 +346,20 @@ export default function TaskDetailsScreen() {
           <ThemedText style={styles.sectionTitle}>Location</ThemedText>
           <View style={styles.addressCard}>
             <MapPin size={20} color="#ff6333" />
-            <ThemedText style={styles.addressText}>{task.address}</ThemedText>
+            {isEditing ? (
+              <TextInput
+                style={styles.editAddressInput}
+                value={editedTask.address}
+                onChangeText={(text) => handleUpdateField('address', text)}
+                placeholder="Enter task address"
+                placeholderTextColor="#999999"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            ) : (
+              <ThemedText style={styles.addressText}>{task.address}</ThemedText>
+            )}
           </View>
         </View>
 
@@ -233,9 +375,23 @@ export default function TaskDetailsScreen() {
                     style={styles.taskImage}
                     contentFit="cover"
                   />
+                  {isEditing && (
+                    <Pressable 
+                      style={styles.deleteImageButton}
+                      onPress={() => handleDeleteImage(image.id)}
+                    >
+                      <Trash2 size={16} color="#ffffff" />
+                    </Pressable>
+                  )}
                 </View>
               ))}
             </View>
+            {isEditing && (
+              <Pressable style={styles.addImageButton} onPress={handleAddImage}>
+                <Plus size={20} color="#ff6333" />
+                <ThemedText style={styles.addImageButtonText}>Add Photo</ThemedText>
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -269,6 +425,32 @@ export default function TaskDetailsScreen() {
        
       </ScrollView>
 
+      {/* Save and Cancel Buttons */}
+      {isEditing && (
+        <View style={styles.bottomActionButtons}>
+          <Pressable style={styles.cancelButtonBottom} onPress={handleCancelEdit}>
+            <LinearGradient
+              colors={['#9e9e9e', '#757575']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <ThemedText style={styles.cancelButtonTextBottom}>Cancel</ThemedText>
+            </LinearGradient>
+          </Pressable>
+          <Pressable style={styles.saveButtonBottom} onPress={handleSaveEdit}>
+            <LinearGradient
+              colors={['#ff8c1a', '#ff6333']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <ThemedText style={styles.saveButtonTextBottom}>Save Changes</ThemedText>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      )}
+
       {/* Assignment Modal */}
       <Modal
         visible={showAssignmentModal}
@@ -279,8 +461,9 @@ export default function TaskDetailsScreen() {
         <TouchableOpacity 
           style={styles.modalOverlay} 
           activeOpacity={1} 
-          onPress={() => setShowAssignmentModal(false)}
+          onPress={handleCloseModal}
         >
+          <Animated.View style={[styles.modalOverlayAnimated, { opacity: overlayOpacity }]} />
           <TouchableOpacity 
             style={styles.modalContent}
             activeOpacity={1}
@@ -290,11 +473,35 @@ export default function TaskDetailsScreen() {
               <ThemedText style={styles.modalTitle}>
                 {task.assigned ? 'Re-assign Helper' : 'Assign Helper'}
               </ThemedText>
-              <Pressable onPress={() => setShowAssignmentModal(false)}>
+              <Pressable onPress={handleCloseModal}>
                 <ThemedText style={styles.closeButton}>×</ThemedText>
               </Pressable>
             </View>
             <ScrollView style={styles.helpersList}>
+              {/* None Option */}
+              <Pressable
+                style={[
+                  styles.helperItem,
+                  selectedHelper && selectedHelper.id === 'none' && styles.helperItemSelected
+                ]}
+                onPress={() => handleHelperSelect({ id: 'none', name: 'None' })}
+              >
+                <View style={styles.helperProfilePic}>
+                  <ThemedText style={styles.helperProfilePicText}>❌</ThemedText>
+                </View>
+                <View style={styles.helperInfo}>
+                  <ThemedText style={styles.helperName}>None</ThemedText>
+                  <View style={styles.helperStats}>
+                    <ThemedText style={styles.helperRating}>Unassign this task</ThemedText>
+                  </View>
+                </View>
+                {selectedHelper && selectedHelper.id === 'none' && (
+                  <View style={styles.selectedIndicator}>
+                    <ThemedText style={styles.selectedCheckmark}>✓</ThemedText>
+                  </View>
+                )}
+              </Pressable>
+              
               {contactedHelpers.map((helper) => (
                 <Pressable
                   key={helper.id}
@@ -680,9 +887,16 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlayAnimated: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: '#ffffff',
@@ -807,5 +1021,127 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  editDescriptionInput: {
+    fontSize: 16,
+    color: '#000000',
+    lineHeight: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    minHeight: 120,
+  },
+  editAddressInput: {
+    fontSize: 16,
+    color: '#000000',
+    marginLeft: 12,
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    minHeight: 80,
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  saveButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#ff6333',
+    borderStyle: 'dashed',
+  },
+  addImageButtonText: {
+    color: '#ff6333',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  bottomActionButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    gap: 16,
+  },
+  cancelButtonBottom: {
+
+    flex: 1,
+    borderRadius: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelButtonTextBottom: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonBottom: {
+    flex: 1,
+    borderRadius: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  saveButtonTextBottom: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonGradient: {
+    paddingVertical: 16,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

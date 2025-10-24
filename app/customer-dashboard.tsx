@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, Image, Modal, Alert, Linking, Animated, Dimensions } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, Alert, Linking, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MapPin, Clock, Star, Plus, Bell, Menu, MessageCircle, User, Send, ChevronRight, LogOut, HelpCircle, Lock } from 'lucide-react-native';
@@ -35,7 +36,7 @@ export default function CustomerDashboard() {
       setCurrentAdIndex((prevIndex) => (prevIndex + 1) % ads.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [ads.length]);
 
   const handlePostTask = () => {
     router.push('/post-task');
@@ -111,6 +112,12 @@ export default function CustomerDashboard() {
 
   const handleProfilePress = () => {
     router.push('/profile');
+  };
+
+  const handleContactHelper = (helper: any) => {
+    // Navigate to chat with the specific helper
+    // In a real app, you would pass the helper data as navigation params
+    router.push('/chat');
   };
 
   return (
@@ -258,7 +265,7 @@ export default function CustomerDashboard() {
                   </View>
                 </View>
               </View>
-              <Pressable style={styles.contactButton}>
+              <Pressable style={styles.contactButton} onPress={() => handleContactHelper(helper)}>
                 <Send size={16} color="#ffffff" />
               </Pressable>
             </View>

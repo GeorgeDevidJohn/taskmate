@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Pressable, TextInput, Alert, ScrollView, Modal } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Pressable, TextInput, Alert, ScrollView, Modal, Animated } from 'react-native';
 import { router } from 'expo-router';
 import { EyeClosedIcon, EyeIcon, Users, HelpCircle } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +14,7 @@ export default function RegisterScreen() {
   const [address, setAddress] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
   const [selectedRole, setSelectedRole] = useState('');
 
   const handleContinue = () => {
@@ -23,6 +24,11 @@ export default function RegisterScreen() {
     }
     
     setIsModalVisible(true);
+    Animated.timing(overlayOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handleRoleSelect = (role: string) => {
@@ -37,14 +43,30 @@ export default function RegisterScreen() {
     
     // TODO: Implement actual registration logic with role
     Alert.alert('Success', `Registration successful as ${selectedRole}!`);
-    setIsModalVisible(false);
-    
-    // Navigate to appropriate dashboard based on role
-    if (selectedRole === 'Helper') {
-      router.replace('/helper-dashboard');
-    } else if (selectedRole === 'Need Help') {
-      router.replace('/customer-dashboard');
-    }
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsModalVisible(false);
+      
+      // Navigate to appropriate dashboard based on role
+      if (selectedRole === 'Helper') {
+        router.replace('/helper-dashboard');
+      } else if (selectedRole === 'Need Help') {
+        router.replace('/customer-dashboard');
+      }
+    });
+  };
+
+  const handleCloseModal = () => {
+    Animated.timing(overlayOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsModalVisible(false);
+    });
   };
 
   return (
@@ -163,7 +185,8 @@ export default function RegisterScreen() {
         onRequestClose={() => setIsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setIsModalVisible(false)} />
+          <Animated.View style={[styles.modalOverlayAnimated, { opacity: overlayOpacity }]} />
+          <Pressable style={styles.modalBackdrop} onPress={handleCloseModal} />
           <LinearGradient
             colors={['#ff6333', '#ff8c5a']}
             style={styles.modalContent}
@@ -463,5 +486,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     fontSize: 20,
     fontWeight: '600',
+  },
+  modalOverlayAnimated: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
 });
