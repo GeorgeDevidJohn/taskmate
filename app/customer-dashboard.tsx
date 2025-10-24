@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, Pressable, Image } from 'react-native';
+import { StyleSheet, View, ScrollView, Pressable, Image, Modal, Alert, Linking, Animated, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Clock, Star, Plus, Bell, Menu, MessageCircle, User, Send, ChevronRight } from 'lucide-react-native';
+import { MapPin, Clock, Star, Plus, Bell, Menu, MessageCircle, User, Send, ChevronRight, LogOut, HelpCircle, Lock } from 'lucide-react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function CustomerDashboard() {
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
+  const [showMenu, setShowMenu] = useState(false);
+  const slideAnim = useState(new Animated.Value(-300))[0]; // Start off-screen
   
   const ads = [
     { id: 1, image: require('@/assets/images/ad1.jpg'), title: 'Get 20% off your first task!' },
@@ -35,27 +37,68 @@ export default function CustomerDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = () => {
-    router.replace('/login');
-  };
-
   const handlePostTask = () => {
     router.push('/post-task');
   };
 
   const handleMenuPress = () => {
-    // TODO: Open menu drawer
-    console.log('Menu pressed');
+    setShowMenu(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeMenu = () => {
+    Animated.timing(slideAnim, {
+      toValue: -300,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMenu(false);
+    });
+  };
+
+  const handleLogout = () => {
+    console.log('Logout button pressed');
+    closeMenu();
+    
+    setTimeout(() => {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Logout', 
+            style: 'destructive', 
+            onPress: () => {
+              console.log('Logout confirmed');
+              router.replace('/login');
+            }
+          }
+        ]
+      );
+    }, 100); // Small delay to ensure menu closes first
+  };
+
+  const handleHelp = () => {
+    closeMenu();
+    Linking.openURL('https://help.taskmate.com');
+  };
+
+  const handleResetPassword = () => {
+    closeMenu();
+    router.push('/reset-password');
   };
 
   const handleNotificationPress = () => {
-    // TODO: Navigate to notifications
-    console.log('Notifications pressed');
+    router.push('/notifications');
   };
 
   const handleMessagePress = () => {
-    // TODO: Navigate to messages
-    console.log('Messages pressed');
+    router.push('/messages');
   };
 
   const handleSeeMoreTasks = () => {
@@ -64,6 +107,10 @@ export default function CustomerDashboard() {
 
   const handleTaskPress = (taskId: number) => {
     router.push('/task-details');
+  };
+
+  const handleProfilePress = () => {
+    router.push('/profile');
   };
 
   return (
@@ -89,9 +136,9 @@ export default function CustomerDashboard() {
           <View style={styles.userInfo}>
             <ThemedText style={styles.userName}>Hi! Alex Johnson</ThemedText>
           </View>
-          <View style={styles.profileIcon}>
+          <Pressable style={styles.profileIcon} onPress={handleProfilePress}>
             <User size={20} color="#ffffff" />
-          </View>
+          </Pressable>
         </View>
       </LinearGradient>
 
@@ -226,6 +273,38 @@ export default function CustomerDashboard() {
           <ThemedText style={styles.messageBadgeText}>2</ThemedText>
         </View>
       </Pressable>
+
+      {/* Side Navigation Drawer */}
+      {showMenu && (
+        <>
+          <Pressable style={styles.overlay} onPress={closeMenu} />
+          <Animated.View style={[styles.sideNav, { transform: [{ translateX: slideAnim }] }]}>
+            <View style={styles.sideNavHeader}>
+              <ThemedText style={styles.sideNavTitle}>Menu</ThemedText>
+              <Pressable style={styles.closeButton} onPress={closeMenu}>
+                <ThemedText style={styles.closeButtonText}>×</ThemedText>
+              </Pressable>
+            </View>
+            
+            <View style={styles.sideNavContent}>
+              <Pressable style={styles.sideNavItem} onPress={handleLogout}>
+                <LogOut size={24} color="#ff6333" />
+                <ThemedText style={styles.sideNavItemText}>Logout</ThemedText>
+              </Pressable>
+              
+              <Pressable style={styles.sideNavItem} onPress={handleHelp}>
+                <HelpCircle size={24} color="#ff6333" />
+                <ThemedText style={styles.sideNavItemText}>Help</ThemedText>
+              </Pressable>
+              
+              <Pressable style={styles.sideNavItem} onPress={handleResetPassword}>
+                <Lock size={24} color="#ff6333" />
+                <ThemedText style={styles.sideNavItemText}>Reset Password</ThemedText>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </>
+      )}
     </ThemedView>
   );
 }
@@ -602,5 +681,74 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1000,
+  },
+  sideNav: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 280,
+    backgroundColor: '#ffffff',
+    zIndex: 1001,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  sideNavHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingTop: 60, // Account for status bar
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  sideNavTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  sideNavContent: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  sideNavItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  sideNavItemText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginLeft: 16,
   },
 });
